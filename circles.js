@@ -14,7 +14,6 @@ canvas.addEventListener("mousemove", e => {
     movementY = e.movementY;
 })
 
-
 function getRandomColour() {
     let r = Math.random() * 255;
     let g = Math.random() * 255;
@@ -52,16 +51,21 @@ function Circle(x, y, dx, dy, r, colour) {
     }
 }
 
-let circles = [];
-for (let i = 0; i < 250; i++) {
+function CreateCircle() {
     // let r = Math.random() * 20;
     let r = 3;
     let x = Math.random() * (innerWidth - r * 2) + r;
     let y = Math.random() * (innerHeight - r * 2) + r;
-    let dx = (Math.random() - 0.5) * 4;
-    let dy = (Math.random() - 0.5) * 4;
+    let dx = (Math.random() - 0.5) * 2;
+    let dy = (Math.random() - 0.5) * 2;
     let colour = getRandomColour();
-    circles.push(new Circle(x, y, dx, dy, r, colour))
+    return new Circle(x, y, dx, dy, r, colour);
+}
+
+let circles = [];
+for (let i = 0; i < 300; i++) {
+    let circle = CreateCircle();
+    circles.push(circle);
 }
 
 function getStrokeStyle(DistanceBetweenCircles, r) {
@@ -95,7 +99,15 @@ function animate() {
 
     for (let i = 0; i < circles.length; i++) {
         const circle1 = circles[i];
-        circle1.update();
+        if ((circle1.x > 0 && circle1.x < innerWidth) && 
+            (circle1.y > 0 && circle1.y < innerHeight)) {
+                circle1.update();
+            }
+        else {
+            circles.splice(i, 1);
+            let circle = CreateCircle();
+            circles.push(circle);
+        }
 
         const DistanceBetweenMouse = Math.sqrt((mouseX-circle1.x)*(mouseX-circle1.x) + (mouseY-circle1.y)*(mouseY-circle1.y));
         if (DistanceBetweenMouse < circle1.r * 16) {
@@ -107,7 +119,7 @@ function animate() {
         for (let j = 0; j < circles.length; j++) {
             const circle2 = circles[j];
             const DistanceBetweenCircles = Math.sqrt((circle2.x-circle1.x)*(circle2.x-circle1.x) + (circle2.y-circle1.y)*(circle2.y-circle1.y));
-            if (DistanceBetweenCircles < circle1.r * 8) {
+            if (DistanceBetweenCircles < circle1.r * 16) {
                 context.beginPath();
                 context.moveTo(circle1.x, circle1.y);
                 context.lineTo(circle2.x, circle2.y);
