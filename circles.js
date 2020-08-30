@@ -1,24 +1,98 @@
-let canvas = document.querySelector("canvas");
-let context = canvas.getContext("2d");
+const canvas = document.querySelector("canvas");
+const context = canvas.getContext("2d");
 canvas.width = innerWidth;
 canvas.height = innerHeight;
 
-let mouseX = 0;
-let mouseY = 0;
-let movementX = 0;
-let movementY = 0;
-canvas.addEventListener("mousemove", e => {
-    mouseX = e.offsetX;
-    mouseY = e.offsetY;
-    movementX = e.movementX;
-    movementY = e.movementY;
-})
+function CircleCanvas(numberOfCircles, velocity, colour) {
+    this.numberOfCircles = numberOfCircles;
+    this.velocity = velocity;
+    this.colour = colour;
+    this.circles = [];
 
-function getRandomColour() {
-    let r = Math.random() * 255;
-    let g = Math.random() * 255;
-    let b = Math.random() * 255;
-    return [r, g, b];
+    this.mouseX = 0;
+    this.mouseY = 0;
+    this.movementX = 0;
+    this.movementY = 0;
+
+    canvas.addEventListener("mousemove", e => {
+        this.mouseX = e.offsetX;
+        this.mouseY = e.offsetY;
+        this.movementX = e.movementX;
+        this.movementY = e.movementY;
+    })
+
+    this.init = function () {
+        for (let i = 0; i < this.numberOfCircles; i++) {
+            let circle = this.createCircle();
+            this.circles.push(circle);
+        }
+    }
+
+    this.createCircle = function () {
+        let dx;
+        let dy;
+        let colour;
+        let r = 3;
+        let x = Math.random() * (innerWidth - r * 2) + r;
+        let y = Math.random() * (innerHeight - r * 2) + r;
+
+        if (typeof this.velocity !== "number") {
+            console.log("Invalid velocity value, defaulting to multiplier of 2");
+            dx = (Math.random() - 0.5) * 2;
+            dy = (Math.random() - 0.5) * 2;
+        }
+        else {
+            dx = (Math.random() - 0.5) * this.velocity;
+            dy = (Math.random() - 0.5) * this.velocity;
+        }
+
+        if (typeof this.colour === "string") {
+            if (this.colour === "random") {
+                colour = "#" + Math.floor(Math.random()*16777215).toString(16);
+            }
+            else if (this.colour.charAt(0) === "#") {
+                colour = this.colour;
+            }
+        }
+        else console.log("Invalid colour value");
+        return new Circle(x, y, dx, dy, r, colour);
+    }
+
+    this.animate = function () {
+        requestAnimationFrame(this.animate.bind(this)); // This doesn't work...
+        context.clearRect(0, 0, innerWidth, innerHeight);
+
+        for (let i = 0; i < this.circles.length; i++) {
+            const circle1 = this.circles[i];
+            if ((circle1.x > 0 && circle1.x < innerWidth) &&
+                (circle1.y > 0 && circle1.y < innerHeight)) {
+                circle1.update();
+            }
+            else {
+                this.circles.splice(i, 1);
+                let circle = this.createCircle();
+                this.circles.push(circle);
+            }
+
+            const DistanceBetweenMouse = Math.sqrt((this.mouseX-circle1.x)*(this.mouseX-circle1.x) + (this.mouseY-circle1.y)*(this.mouseY-circle1.y));
+            if (DistanceBetweenMouse < circle1.r * 16) {
+                circle1.x = circle1.x + (this.movementX - circle1.r);
+                circle1.y = circle1.y + (this.movementY - circle1.r);
+            }
+
+            for (let j = 0; j < this.circles.length; j++) {
+                const circle2 = this.circles[j];
+                const circles = Math.sqrt((circle2.x-circle1.x)*(circle2.x-circle1.x) + (circle2.y-circle1.y)*(circle2.y-circle1.y));
+                if (circles < circle1.r * 16) {
+                    context.beginPath();
+                    context.moveTo(circle1.x, circle1.y);
+                    context.lineTo(circle2.x, circle2.y);
+                    context.strokeStyle = getStrokeStyle(circles, circle1.r);
+                    context.stroke();
+                }
+            }
+        }
+    }
 }
 
 function Circle(x, y, dx, dy, r, colour) {
@@ -32,7 +106,18 @@ function Circle(x, y, dx, dy, r, colour) {
     this.draw = function() {
         context.beginPath();
         context.arc(this.x, this.y, this.r, 0, 360, false);
-        context.fillStyle = "rgba(" + this.colour[0] + "," + this.colour[1] + "," + this.colour[2] + ")";
+        context.fillStyle = this.colour;
+        // if (this.colour === typeof(Array) && this.colour.length === 3) {
+        //     context.fillStyle = "rgba(" + this.colour[0] + "," + this.colour[1] + "," + this.colour[2] + ")";
+        // }
+        // else {
+        //     try {
+        //         context.fillStyle = this.colour;
+        //     } catch (exception) {
+        //         console.log("Invalid colour format");
+        //         context.fillStyle = "black";
+        //     }
+        // }
         context.fill();
     }
 
@@ -49,23 +134,6 @@ function Circle(x, y, dx, dy, r, colour) {
 
         this.draw();
     }
-}
-
-function CreateCircle() {
-    // let r = Math.random() * 20;
-    let r = 3;
-    let x = Math.random() * (innerWidth - r * 2) + r;
-    let y = Math.random() * (innerHeight - r * 2) + r;
-    let dx = (Math.random() - 0.5) * 2;
-    let dy = (Math.random() - 0.5) * 2;
-    let colour = getRandomColour();
-    return new Circle(x, y, dx, dy, r, colour);
-}
-
-let circles = [];
-for (let i = 0; i < 300; i++) {
-    let circle = CreateCircle();
-    circles.push(circle);
 }
 
 function getStrokeStyle(DistanceBetweenCircles, r) {
@@ -92,42 +160,8 @@ function getStrokeStyle(DistanceBetweenCircles, r) {
     }
 }
 
-function animate() {
-    requestAnimationFrame(animate);
-    context.clearRect(0, 0, innerWidth, innerHeight);
-    // console.log("MouseX: " + mouseX + ", MouseY: " + mouseY);
-
-    for (let i = 0; i < circles.length; i++) {
-        const circle1 = circles[i];
-        if ((circle1.x > 0 && circle1.x < innerWidth) && 
-            (circle1.y > 0 && circle1.y < innerHeight)) {
-                circle1.update();
-            }
-        else {
-            circles.splice(i, 1);
-            let circle = CreateCircle();
-            circles.push(circle);
-        }
-
-        const DistanceBetweenMouse = Math.sqrt((mouseX-circle1.x)*(mouseX-circle1.x) + (mouseY-circle1.y)*(mouseY-circle1.y));
-        if (DistanceBetweenMouse < circle1.r * 16) {
-            // console.log("MovementX: " + movementX + ", MovementY: " + movementY);
-            circle1.x = circle1.x + movementX;
-            circle1.y = circle1.y + movementY;
-        }
-
-        for (let j = 0; j < circles.length; j++) {
-            const circle2 = circles[j];
-            const DistanceBetweenCircles = Math.sqrt((circle2.x-circle1.x)*(circle2.x-circle1.x) + (circle2.y-circle1.y)*(circle2.y-circle1.y));
-            if (DistanceBetweenCircles < circle1.r * 16) {
-                context.beginPath();
-                context.moveTo(circle1.x, circle1.y);
-                context.lineTo(circle2.x, circle2.y);
-                context.strokeStyle = getStrokeStyle(DistanceBetweenCircles, circle1.r);
-                context.stroke();
-            }
-        }
-    }
-}
-
-animate();
+window.onload = function() {
+    const config = Function("return " + canvas.id)();
+    config.init();
+    config.animate();
+};
